@@ -4,8 +4,8 @@
 // The anon key is safe in the browser because row level security (schema.sql) protects the data.
 // NEVER put the service_role key in this app.
 
-var SUPABASE_URL = "https://nycnvgxgextkyrnenudp.supabase.co/rest/v1/";
-var SUPABASE_ANON_KEY = "DUSKWOOD";
+var SUPABASE_URL = "https://nycnvgxgextkyrnenudp.supabase.co";
+var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55Y252Z3hnZXh0a3lybmVudWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyMDMwODAsImV4cCI6MjEwOTc3OTA4MH0._qSM_iNqXQ0ti3WA6Y_zQt8_cv0RYIVpT6CBa2Dmeac";
 
 var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
