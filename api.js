@@ -4,8 +4,9 @@
 // The anon key is safe in the browser because row level security (schema.sql) protects the data.
 // NEVER put the service_role key in this app.
 
-var SUPABASE_URL = "https://YOUR-PROJECT.supabase.co";
-var SUPABASE_ANON_KEY = "YOUR-ANON-KEY";
+var SUPABASE_URL = "https://
+  https://nycnvgxgextkyrnenudp.supabase.co/rest/v1/";
+var SUPABASE_ANON_KEY = "DUSKWOOD";
 
 var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
