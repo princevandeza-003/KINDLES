@@ -102,6 +102,10 @@ body[data-scene="me"]{--b1:#a58bff;--b2:#52c7b4;--b3:#ff9ab0}
 .list,.me-sec{width:100%;max-width:720px;align-self:center}
 .msgs,.ice,.send{width:100%;max-width:720px;align-self:center}
 .mepic{width:140px;height:140px;border-radius:50%;margin:8px auto 4px;display:flex;align-items:center;justify-content:center;font:800 56px "Bricolage Grotesque",sans-serif;color:#fff;box-shadow:var(--shadow)}
+.dots{position:absolute;bottom:10px;left:0;right:0;display:flex;gap:4px;justify-content:center}.dots i{width:22px;height:4px;border-radius:2px;background:rgba(255,255,255,.45)}.dots i.on{background:#fff}
+.gal{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}.gi{aspect-ratio:3/4;border-radius:12px;position:relative}
+.gi button{position:absolute;top:4px;right:4px;border:0;border-radius:50%;width:24px;height:24px;background:rgba(0,0,0,.6);color:#fff;cursor:pointer}
+.m audio{max-width:100%;height:36px}
 </style>
 </head>
 <body>
@@ -113,7 +117,7 @@ body[data-scene="me"]{--b1:#a58bff;--b2:#52c7b4;--b3:#ff9ab0}
 <label>First name</label><input id="sn" maxlength="40"><label>Birthdate (you must be 18+)</label><input id="sb" type="date"><label>I am</label><select id="sg"><option value="">Select…</option><option value="woman">Woman</option><option value="man">Man</option><option value="nonbinary">Non-binary</option></select><label>Interested in (pick all that apply)</label><div class="chips" id="sgi"></div>
 <label>I’m looking for</label><select id="si"><option>Serious</option><option selected>Casual</option><option>Friends</option></select>
 <label>Prompt</label><select id="sq"><option>Ask me about</option><option>Best first date</option><option>Typical Sunday</option></select><textarea id="sa" rows="3" maxlength="300" placeholder="Your answer"></textarea>
-<label>Interests</label><div class="chips" id="sch"></div><label>Photo</label><input id="sp" type="file" accept="image/*">
+<label>Interests</label><div class="chips" id="sch"></div><label>Photo</label><input id="sp" type="file" accept="image/*" multiple>
 <button class="btn" id="sgo">Start swiping</button><p class="err" id="serr"></p></div></div>
 <div id="app">
   <header><h1>Kindle</h1>
@@ -136,7 +140,7 @@ body[data-scene="me"]{--b1:#a58bff;--b2:#52c7b4;--b3:#ff9ab0}
       <header><button class="btn" style="margin:0;padding:6px 12px" id="back">Back</button><h3 id="cname"></h3><button class="btn" style="margin:0;padding:6px 12px;background:none;color:var(--mute)" id="flag">Report</button></header>
       <div class="msgs" id="msgs"></div>
       <div class="ice" id="ice"></div>
-      <form class="send" id="sendf"><input id="inp" placeholder="Say something kind…" autocomplete="off"><button class="btn" style="margin:0">Send</button></form>
+      <form class="send" id="sendf"><button type="button" class="btn alt" id="mic" style="margin:0" aria-label="Record voice message">🎤</button><input id="inp" placeholder="Say something kind…" autocomplete="off"><button class="btn" style="margin:0">Send</button></form>
     </div>
   </main>
   <nav>
@@ -162,12 +166,21 @@ var INTERESTS=["Hiking","Coffee","Live music","Cooking","Board games","Film","Cl
 var S={mode:"All",mine:[],queue:[],hist:[],matches:[],cur:null,ch:null,me:null,into:[]};
 var GEN=[["woman","Women"],["man","Men"],["nonbinary","Non-binary people"]],GL={woman:"Woman",man:"Man",nonbinary:"Non-binary"};
 function gchips(el){el.innerHTML=GEN.map(function(g){return '<button type="button" class="chip pick'+(S.into.indexOf(g[0])>-1?" on":"")+'" data-g="'+g[0]+'">'+g[1]+'</button>'}).join("")}
+S.maxKm=null;S.hasLoc=false;var AU={};
+API.discover=function(intent){return sb.rpc("discover",{p_intent:intent&&intent!=="All"?intent:null,p_max_km:S.hasLoc&&S.maxKm?S.maxKm:null})};
+API.sendVoice=async function(matchId,blob,ext){var u=await API.user();var path=matchId+"/"+Date.now()+"."+ext;var up=await sb.storage.from("voice").upload(path,blob,{contentType:blob.type});if(up.error)return up;return sb.from("messages").insert({match_id:matchId,sender:u.id,body:"🎤 Voice message",audio_path:path})};
+API.addPhotos=async function(files){var u=await API.user();var r=await API.myProfile();var list=(r.data&&r.data.photos||[]).slice();for(var i=0;i<files.length&&list.length<6;i++){var b=await shrink(files[i]);var path=u.id+"/g-"+Date.now()+"-"+i+".jpg";var up=await sb.storage.from("photos").upload(path,b,{contentType:"image/jpeg"});if(up.error)return up;list.push(path)}return sb.from("profiles").update({photos:list,photo_path:list[0]||null}).eq("id",u.id)};
+API.removePhoto=async function(path){var u=await API.user();var r=await API.myProfile();var list=(r.data.photos||[]).filter(function(x){return x!==path});await sb.storage.from("photos").remove([path]);return sb.from("profiles").update({photos:list,photo_path:list[0]||null}).eq("id",u.id)};
+API.setLocation=async function(lat,lng){var u=await API.user();return sb.from("locations").upsert({user_id:u.id,lat:Math.round(lat*100)/100,lng:Math.round(lng*100)/100,updated_at:new Date().toISOString()})};
+API.clearLocation=async function(){var u=await API.user();return sb.from("locations").delete().eq("user_id",u.id)};
+API.hasLocation=async function(){var u=await API.user();var r=await sb.from("locations").select("user_id").eq("user_id",u.id).maybeSingle();return !!r.data};
 API.saveProfile=async function(p){var u=await API.user();return sb.from("profiles").upsert({id:u.id,name:p.name,birthdate:p.birthdate,gender:p.gender,interested_in:p.interested_in,intent:p.intent,prompt_q:p.prompt_q,prompt_a:p.prompt_a,interests:p.interests})};
 var $=function(id){return document.getElementById(id)};
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
 function age(b){var d=new Date(b),n=new Date(),a=n.getFullYear()-d.getFullYear();if(n.getMonth()<d.getMonth()||(n.getMonth()==d.getMonth()&&n.getDate()<d.getDate()))a--;return a}
 function hue(id){var h=0;for(var i=0;i<id.length;i++)h=(h*31+id.charCodeAt(i))%360;return h}
-function bg(p){var u=API.photoUrl(p.photo_path),h=hue(p.id);return u?"background:center/cover url('"+u+"')":"background:linear-gradient(145deg,hsl("+h+",70%,62%),hsl("+(h+50)+",65%,38%))"}
+function pl(p){return p.photos&&p.photos.length?p.photos:(p.photo_path?[p.photo_path]:[])}
+function bg(p,i){var u=API.photoUrl(pl(p)[i||0]),h=hue(p.id);return u?"background:center/cover url('"+u+"')":"background:linear-gradient(145deg,hsl("+h+",70%,62%),hsl("+(h+50)+",65%,38%))"}
 function score(p){var sh=(p.interests||[]).filter(function(x){return S.mine.indexOf(x)>-1}).length;return Math.min(98,52+sh*12+(S.mode===p.intent?8:0))}
 function say(id,t){$(id).textContent=t}
 function toast(t){var e=document.createElement("div");e.textContent=t;e.style.cssText="position:fixed;top:60px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:99px;z-index:40;font-weight:500";document.body.appendChild(e);setTimeout(function(){e.remove()},2200)}
@@ -190,22 +203,22 @@ $("sgo").onclick=async function(){
  if(age(b)<18)return say("serr","Kindle is for people 18 and over.");
  var r=await API.saveProfile({name:n,birthdate:b,gender:g,interested_in:S.into,intent:$("si").value,prompt_q:$("sq").value,prompt_a:$("sa").value.slice(0,300),interests:S.mine});
  if(r.error)return say("serr",r.error.message);
- var f=$("sp").files[0];if(f){await API.uploadPhoto(await shrink(f))}
+ var fl=$("sp").files;if(fl.length){await API.addPhotos(fl)}
  init()};
-async function start(){modes();await loadQueue();await loadMatches();meView();API.onMatch(function(){loadMatches();toast("New match!")})}
+async function start(){modes();S.hasLoc=await API.hasLocation();await loadQueue();await loadMatches();meView();API.onMatch(function(){loadMatches();toast("New match!")})}
 /* ---- discover ---- */
 function modes(){$("modes").innerHTML=["All","Serious","Casual","Friends"].map(function(m){return '<button class="'+(S.mode===m?"on":"")+'" data-m="'+m+'">'+m+'</button>'}).join("")}
 $("modes").onclick=function(e){var m=e.target.dataset.m;if(m){S.mode=m;modes();loadQueue()}};
 async function loadQueue(){var r=await API.discover(S.mode);S.queue=(r.data||[]).sort(function(a,b){return score(b)-score(a)});S.hist=[];render()}
 function cardHTML(p){var ch=(p.interests||[]).map(function(x){return '<span class="chip'+(S.mine.indexOf(x)>-1?" shared":"")+'">'+esc(x)+'</span>'}).join("");
- return '<div class="photo" style="'+bg(p)+'">'+(p.photo_path?"":esc(p.name[0]))+'<span class="intent">'+esc(p.intent)+'</span><span class="score">'+score(p)+'% match</span></div><div class="info"><h2>'+esc(p.name)+' <span>'+age(p.birthdate)+'</span></h2><div class="meta">Green chips are interests you share</div>'+(p.prompt_a?'<div class="prompt"><small>'+esc(p.prompt_q)+'</small><p>'+esc(p.prompt_a)+'</p></div>':"")+'<div class="chips">'+ch+'</div></div><div class="stamp l">LIKE</div><div class="stamp n">PASS</div>'}
+ return '<div class="photo" data-n="0" style="'+bg(p)+'">'+(pl(p).length?"":esc(p.name[0]))+(pl(p).length>1?'<span class="dots">'+pl(p).map(function(x,k){return '<i'+(k?"":' class="on"')+'></i>'}).join("")+'</span>':"")+'<span class="intent">'+esc(p.intent)+'</span><span class="score">'+score(p)+'% match</span></div><div class="info"><h2>'+esc(p.name)+' <span>'+age(p.birthdate)+'</span></h2><div class="meta">'+(p.distance_km!=null?(p.distance_km<2?"Under 2 km away":p.distance_km+" km away")+" · ":"")+'Green chips are interests you share</div>'+(p.prompt_a?'<div class="prompt"><small>'+esc(p.prompt_q)+'</small><p>'+esc(p.prompt_a)+'</p></div>':"")+'<div class="chips">'+ch+'</div></div><div class="stamp l">LIKE</div><div class="stamp n">PASS</div>'}
 function render(){var d=$("deck");d.innerHTML="";
  if(!S.queue.length){d.innerHTML='<div class="empty"><h3>You’re all caught up</h3><p>No new people in '+(S.mode==="All"?"your area":esc(S.mode))+' right now. Check back soon or try another mode.</p><button class="btn" id="again">Refresh</button></div>';$("again").onclick=loadQueue;return}
  for(var k=Math.min(2,S.queue.length)-1;k>=0;k--){var c=document.createElement("div");c.className="card"+(k?" back":"");c.innerHTML=cardHTML(S.queue[k]);d.appendChild(c);if(!k)drag(c)}}
 function drag(c){var x0=0,y0=0,dx=0,on=false;
  c.onpointerdown=function(e){on=true;x0=e.clientX;y0=e.clientY;c.setPointerCapture(e.pointerId);c.style.transition="none"};
  c.onpointermove=function(e){if(!on)return;dx=e.clientX-x0;var dy=e.clientY-y0;c.style.transform="translate("+dx+"px,"+dy*.3+"px) rotate("+dx/18+"deg)";c.querySelector(".l").style.opacity=Math.max(0,dx/90);c.querySelector(".n").style.opacity=Math.max(0,-dx/90)};
- c.onpointerup=function(){if(!on)return;on=false;if(dx>90)swipe("like");else if(dx<-90)swipe("nope");else{c.style.transition="transform .2s";c.style.transform="";c.querySelector(".l").style.opacity=0;c.querySelector(".n").style.opacity=0}dx=0}}
+ c.onpointerup=function(e){if(!on)return;on=false;if(Math.abs(dx)<6&&e.target.closest(".photo")){cycle(c);dx=0;return}if(dx>90)swipe("like");else if(dx<-90)swipe("nope");else{c.style.transition="transform .2s";c.style.transform="";c.querySelector(".l").style.opacity=0;c.querySelector(".n").style.opacity=0}dx=0}}
 async function swipe(kind){var c=$("deck").querySelector(".card:not(.back)"),p=S.queue[0];if(!p||!c)return;
  c.style.transition="transform .3s";c.style.transform={like:"translateX(130%) rotate(20deg)",nope:"translateX(-130%) rotate(-20deg)",super:"translateY(-130%)"}[kind];
  var h={p:p,matched:false};S.hist.push(h);S.queue.shift();setTimeout(render,260);
@@ -224,8 +237,8 @@ async function loadMatches(){var r=await API.matches(),rows=r.data||[],ids=rows.
 function mlist(){var l=$("mlist");if(!S.matches.length){l.innerHTML='<div class="empty"><h3>No matches yet</h3><p>Swipe right on someone you like. Your matches show up here.</p></div>';return}
  l.innerHTML=S.matches.map(function(m){var p=m.other;return '<button class="row" data-id="'+m.id+'"><span class="av" style="'+bg(p)+'">'+(p.photo_path?"":esc(p.name[0]))+'</span><span><b>'+esc(p.name)+'</b> <span style="color:var(--gold)">'+score(p)+'%</span><small>Tap to chat</small></span></button>'}).join("")}
 $("mlist").onclick=function(e){var r=e.target.closest(".row");if(r)openChat(S.matches.filter(function(m){return m.id===r.dataset.id})[0])};
-async function paint(){var r=await API.messages(S.cur.id),m=r.data||[];
- $("msgs").innerHTML=m.length?m.map(function(x){return '<div class="m'+(x.sender===S.me.id?" me":"")+'">'+esc(x.body)+'</div>'}).join(""):'<div class="empty"><p>You matched with '+esc(S.cur.other.name)+'. Tap an icebreaker or write your own.</p></div>';$("msgs").scrollTop=1e5}
+async function paint(){var r=await API.messages(S.cur.id),m=r.data||[];for(var q=0;q<m.length;q++){if(m[q].audio_path&&!AU[m[q].audio_path]){var sg=await sb.storage.from("voice").createSignedUrl(m[q].audio_path,3600);AU[m[q].audio_path]=sg.data&&sg.data.signedUrl}}
+ $("msgs").innerHTML=m.length?m.map(function(x){return '<div class="m'+(x.sender===S.me.id?" me":"")+'">'+(x.audio_path?(AU[x.audio_path]?'<audio controls preload="none" src="'+AU[x.audio_path]+'"></audio>':"Voice message unavailable"):esc(x.body))+'</div>'}).join(""):'<div class="empty"><p>You matched with '+esc(S.cur.other.name)+'. Tap an icebreaker or write your own.</p></div>';$("msgs").scrollTop=1e5}
 function openChat(m){if(!m)return;S.cur=m;var p=m.other;$("cname").innerHTML='<span class="av" style="width:34px;height:34px;display:inline-flex;font-size:16px;vertical-align:middle;margin-right:8px;'+bg(p)+'">'+(p.photo_path?"":esc(p.name[0]))+'</span>'+esc(p.name);$("chat").classList.add("on");
  var sh=(p.interests||[]).filter(function(x){return S.mine.indexOf(x)>-1}),t=(sh[0]||(p.interests||[])[0]||"weekend").toLowerCase();
  $("ice").innerHTML=["What’s your "+t+" story?","What’s the best thing that happened this week?","Coffee or a walk first?"].map(function(x){return '<button type="button">'+x+'</button>'}).join("");
@@ -236,13 +249,37 @@ $("sendf").onsubmit=function(e){e.preventDefault();send($("inp").value);$("inp")
 $("back").onclick=function(){$("chat").classList.remove("on");if(S.ch){sb.removeChannel(S.ch);S.ch=null}};
 $("flag").onclick=function(){safety(S.cur.other)};
 /* ---- my profile ---- */
-function meView(){var p=S.me;$("me").innerHTML='<div class="mepic" style="'+bg(p)+'">'+(p.photo_path?"":esc(p.name[0]))+'</div><h3 style="text-align:center">'+esc(p.name)+', '+age(p.birthdate)+'</h3><p class="meta">Looking for: '+esc(p.intent)+' · '+esc(GL[p.gender]||"")+'</p><label class="btn alt" style="display:inline-block;cursor:pointer">Change photo<input id="ph2" type="file" accept="image/*" hidden></label><h3>Interested in</h3><div class="chips" id="cg"></div><h3>Your interests</h3><div class="chips" id="ci"></div><h3>Theme</h3><div class="chips"><button class="chip pick" data-th="light">Light</button><button class="chip pick" data-th="dark">Dark</button></div><p><button class="btn alt" id="out">Log out</button></p>';
- chips($("ci"));gchips($("cg"));$("ph2").onchange=async function(){var f=this.files[0];if(f){toast("Uploading…");var u=await API.uploadPhoto(await shrink(f));if(u.error)return toast("Upload failed: "+u.error.message);var r=await API.myProfile();S.me=r.data;S.mine=S.me.interests||[];S.into=S.me.interested_in||[];meView();toast("Photo updated")}};
+function meView(){var p=S.me;$("me").innerHTML='<div class="mepic" style="'+bg(p)+'">'+(p.photo_path?"":esc(p.name[0]))+'</div><h3 style="text-align:center">'+esc(p.name)+', '+age(p.birthdate)+'</h3><p class="meta">Looking for: '+esc(p.intent)+' · '+esc(GL[p.gender]||"")+'</p><h3>Photos</h3><div class="gal" id="gal"></div><label class="btn alt" style="display:inline-block;cursor:pointer">Add from gallery<input id="ph2" type="file" accept="image/*" multiple hidden></label><h3>Location</h3><p class="meta" id="locmsg"></p><button class="btn alt" id="loc" type="button">Use my location</button> <button class="btn alt" id="noloc" type="button" hidden>Stop sharing</button><p class="meta" style="margin-top:10px">Show people within</p><select id="km" style="border:1px solid var(--line);background:var(--surf);color:var(--ink);border-radius:12px;padding:9px 12px;font:inherit"></select><h3>Interested in</h3><div class="chips" id="cg"></div><h3>Your interests</h3><div class="chips" id="ci"></div><h3>Theme</h3><div class="chips"><button class="chip pick" data-th="light">Light</button><button class="chip pick" data-th="dark">Dark</button></div><p><button class="btn alt" id="out">Log out</button></p>';
+ chips($("ci"));gchips($("cg"));meExtras();
  $("out").onclick=async function(){await API.signOut();location.reload()};
  document.querySelectorAll("[data-th]").forEach(function(b){b.onclick=function(){document.documentElement.setAttribute("data-theme",b.dataset.th)}})}
 document.querySelector("nav").onclick=function(e){var b=e.target.closest("button");if(!b)return;document.body.dataset.scene=b.dataset.v;document.querySelectorAll("nav button").forEach(function(x){x.classList.toggle("on",x===b)});document.querySelectorAll(".view").forEach(function(v){v.classList.toggle("on",v.id==="v-"+b.dataset.v)})};
 (function(){document.body.dataset.scene="discover";var b=$("bg");for(var i=0;i<12;i++){var h=document.createElement("span");h.className="heart";h.textContent="♥";h.style.cssText="left:"+Math.round(Math.random()*96)+"%;font-size:"+(14+Math.random()*22|0)+"px;animation-duration:"+(14+Math.random()*16|0)+"s;animation-delay:-"+(Math.random()*20|0)+"s";b.appendChild(h)}})();
 (function(){var d=document.documentElement,f=d.requestFullscreen||d.webkitRequestFullscreen;if(!f){$("fs").hidden=true;return}$("fs").onclick=function(){if(document.fullscreenElement||document.webkitFullscreenElement){(document.exitFullscreen||document.webkitExitFullscreen).call(document)}else{f.call(d)}}})();
+function cycle(c){var p=S.queue[0],l=pl(p);if(l.length<2)return;var ph=c.querySelector(".photo"),n=(+ph.dataset.n+1)%l.length;ph.dataset.n=n;ph.style.cssText=bg(p,n);ph.querySelectorAll(".dots i").forEach(function(d,k){d.classList.toggle("on",k===n)})}
+async function refreshMe(){var r=await API.myProfile();S.me=r.data;S.mine=S.me.interests||[];S.into=S.me.interested_in||[];meView()}
+function locUI(){$("locmsg").textContent=S.hasLoc?"Location is on. Others only see an approximate distance, never where you are.":"Turn on location to see how far people are and to filter by distance.";$("loc").textContent=S.hasLoc?"Update my location":"Use my location";$("noloc").hidden=!S.hasLoc}
+function meExtras(){var l=pl(S.me);
+ $("gal").innerHTML=l.length?l.map(function(x,k){return '<div class="gi" style="background:center/cover url(\''+API.photoUrl(x)+'\')"><button type="button" data-rm="'+k+'" aria-label="Remove photo">✕</button></div>'}).join(""):'<p class="meta">No photos yet.</p>';
+ $("gal").onclick=async function(e){var k=e.target.dataset.rm;if(k==null)return;var r=await API.removePhoto(l[k]);if(r.error)return toast("Could not remove photo");await refreshMe()};
+ $("ph2").onchange=async function(){var fl=this.files;if(!fl.length)return;toast("Uploading…");var r=await API.addPhotos(fl);if(r.error)return toast("Upload failed: "+r.error.message);await refreshMe();toast("Photos updated")};
+ var km=$("km");km.innerHTML=[["","Any distance"],["10","10 km"],["25","25 km"],["50","50 km"],["100","100 km"],["300","300 km"]].map(function(o){return '<option value="'+o[0]+'"'+(String(S.maxKm||"")===o[0]?" selected":"")+'>'+o[1]+'</option>'}).join("");
+ km.onchange=function(){S.maxKm=km.value?+km.value:null;loadQueue()};
+ locUI();
+ $("loc").onclick=function(){if(!navigator.geolocation)return toast("Location is not supported on this device");navigator.geolocation.getCurrentPosition(async function(pos){var r=await API.setLocation(pos.coords.latitude,pos.coords.longitude);if(r.error)return toast("Could not save location");S.hasLoc=true;locUI();loadQueue();toast("Location saved")},function(){toast("Location permission was denied")},{timeout:15000})};
+ $("noloc").onclick=async function(){await API.clearLocation();S.hasLoc=false;locUI();loadQueue()}}
+var rec=null;
+$("mic").onclick=async function(){
+ if(rec){rec.stop();return}
+ if(!navigator.mediaDevices||!window.MediaRecorder)return toast("Voice recording is not supported on this device");
+ var st;try{st=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){return toast("Microphone permission was denied")}
+ var mt=MediaRecorder.isTypeSupported("audio/webm")?"audio/webm":"audio/mp4",ext=mt==="audio/webm"?"webm":"m4a",ch=[],t0=Date.now(),cm=S.cur,tm;
+ rec=new MediaRecorder(st,{mimeType:mt});
+ rec.ondataavailable=function(e){if(e.data.size)ch.push(e.data)};
+ rec.onstop=async function(){st.getTracks().forEach(function(t){t.stop()});clearTimeout(tm);rec=null;$("mic").textContent="🎤";if(Date.now()-t0<700)return toast("Too short, hold on a bit longer");toast("Sending voice message…");var r=await API.sendVoice(cm.id,new Blob(ch,{type:mt}),ext);if(r.error)return toast("Could not send voice message");if(S.cur===cm)paint()};
+ tm=setTimeout(function(){if(rec)rec.stop()},60000);
+ rec.start();$("mic").textContent="⏹ Stop"};
+
 init();
 
 </script>
