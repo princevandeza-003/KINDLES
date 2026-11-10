@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#0e1e21">
 <title>Kindle – dating with intent</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
@@ -12,7 +13,7 @@
 *{box-sizing:border-box;margin:0}
 html,body{height:100%}
 body{background:var(--bg);color:var(--ink);font:400 15px/1.4 "DM Sans",system-ui,sans-serif;display:flex;justify-content:center;overflow:hidden}
-#app{width:100%;max-width:440px;height:100%;display:flex;flex-direction:column}
+#app{width:100%;max-width:none;height:100%;display:flex;flex-direction:column}
 h1,h2,h3,.disp{font-family:"Bricolage Grotesque","DM Sans",system-ui,sans-serif}
 header{display:flex;align-items:center;justify-content:space-between;padding:12px 18px 6px}
 header h1{font-size:24px;font-weight:800;color:var(--acc)}
@@ -97,6 +98,9 @@ body[data-scene="me"]{--b1:#a58bff;--b2:#52c7b4;--b3:#ff9ab0}
 .ov{background:var(--bg);background:color-mix(in srgb,var(--bg) 40%,transparent)}
 .chat{background:var(--bg);background:color-mix(in srgb,var(--bg) 80%,transparent)}
 @media (prefers-reduced-motion:reduce){.blob,.heart{animation:none}.heart{display:none}}
+#deck{margin:8px auto 0;width:calc(100% - 32px);max-width:560px}
+.list,.me-sec{width:100%;max-width:720px;align-self:center}
+.msgs,.ice,.send{width:100%;max-width:720px;align-self:center}
 </style>
 </head>
 <body>
@@ -112,7 +116,7 @@ body[data-scene="me"]{--b1:#a58bff;--b2:#52c7b4;--b3:#ff9ab0}
 <button class="btn" id="sgo">Start swiping</button><p class="err" id="serr"></p></div></div>
 <div id="app">
   <header><h1>Kindle</h1>
-    <div class="modes" id="modes" role="group" aria-label="What are you looking for"></div>
+    <div style="display:flex;gap:8px;align-items:center"><div class="modes" id="modes" role="group" aria-label="What are you looking for"></div><button class="chip" id="fs" type="button" title="Full screen" aria-label="Full screen" style="font-size:18px;cursor:pointer;background:var(--surf)">⛶</button></div>
   </header>
   <main>
     <section class="view on" id="v-discover">
@@ -150,6 +154,9 @@ body[data-scene="me"]{--b1:#a58bff;--b2:#52c7b4;--b3:#ff9ab0}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="api.js"></script>
 <script>
+window.onerror=function(m,u,l){var e=document.createElement("div");e.style.cssText="position:fixed;left:0;right:0;bottom:0;background:#b00020;color:#fff;padding:12px;z-index:99;font:13px/1.4 sans-serif";e.textContent="Error: "+m+(l?" (line "+l+")":"");document.body.appendChild(e)};
+window.addEventListener("unhandledrejection",function(e){window.onerror(e.reason&&e.reason.message||"request failed")});
+if(typeof API==="undefined"||typeof sb==="undefined"){document.body.innerHTML='<div style="padding:24px;font:16px/1.5 sans-serif"><h2>Kindle can’t start</h2><p>api.js or the Supabase library didn’t load. Open <b>api.js</b> on GitHub and check the first two lines (URL and key inside quotation marks, each line ending with a semicolon), then check your internet connection and reload.</p></div>';throw new Error("api.js not loaded")}
 var INTERESTS=["Hiking","Coffee","Live music","Cooking","Board games","Film","Climbing","Travel","Books","Yoga","Photography","Dogs","Gaming","Art","Running","Vinyl"];
 var S={mode:"All",mine:[],queue:[],hist:[],matches:[],cur:null,ch:null,me:null,into:[]};
 var GEN=[["woman","Women"],["man","Men"],["nonbinary","Non-binary people"]],GL={woman:"Woman",man:"Man",nonbinary:"Non-binary"};
@@ -234,6 +241,7 @@ function meView(){var p=S.me;$("me").innerHTML='<h3>'+esc(p.name)+', '+age(p.bir
  document.querySelectorAll("[data-th]").forEach(function(b){b.onclick=function(){document.documentElement.setAttribute("data-theme",b.dataset.th)}})}
 document.querySelector("nav").onclick=function(e){var b=e.target.closest("button");if(!b)return;document.body.dataset.scene=b.dataset.v;document.querySelectorAll("nav button").forEach(function(x){x.classList.toggle("on",x===b)});document.querySelectorAll(".view").forEach(function(v){v.classList.toggle("on",v.id==="v-"+b.dataset.v)})};
 (function(){document.body.dataset.scene="discover";var b=$("bg");for(var i=0;i<12;i++){var h=document.createElement("span");h.className="heart";h.textContent="♥";h.style.cssText="left:"+Math.round(Math.random()*96)+"%;font-size:"+(14+Math.random()*22|0)+"px;animation-duration:"+(14+Math.random()*16|0)+"s;animation-delay:-"+(Math.random()*20|0)+"s";b.appendChild(h)}})();
+(function(){var d=document.documentElement,f=d.requestFullscreen||d.webkitRequestFullscreen;if(!f){$("fs").hidden=true;return}$("fs").onclick=function(){if(document.fullscreenElement||document.webkitFullscreenElement){(document.exitFullscreen||document.webkitExitFullscreen).call(document)}else{f.call(d)}}})();
 init();
 
 </script>
