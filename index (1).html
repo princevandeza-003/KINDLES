@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kindle – dating with intent</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f3efe9;--surf:#fff;--ink:#1d2326;--mute:#6b777b;--line:#ded8cf;--acc:#e8466b;--acc2:#1f7a6d;--gold:#e5a823;--shadow:0 12px 30px rgba(20,40,40,.16);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1e21;--surf:#173136;--ink:#f1ede6;--mute:#97aaae;--line:#2a4a50;--acc:#ff7a98;--acc2:#52c7b4;--gold:#f2c14e;--shadow:0 12px 30px rgba(0,0,0,.4)}}
+:root[data-theme="dark"]{--bg:#0e1e21;--surf:#173136;--ink:#f1ede6;--mute:#97aaae;--line:#2a4a50;--acc:#ff7a98;--acc2:#52c7b4;--gold:#f2c14e;--shadow:0 12px 30px rgba(0,0,0,.4)}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font:400 15px/1.4 "DM Sans",system-ui,sans-serif;display:flex;justify-content:center;overflow:hidden}
+#app{width:100%;max-width:440px;height:100%;display:flex;flex-direction:column}
+h1,h2,h3,.disp{font-family:"Bricolage Grotesque","DM Sans",system-ui,sans-serif}
+header{display:flex;align-items:center;justify-content:space-between;padding:12px 18px 6px}
+header h1{font-size:24px;font-weight:800;color:var(--acc)}
+.modes{display:flex;background:var(--surf);border:1px solid var(--line);border-radius:99px;padding:3px}
+.modes button{border:0;background:none;color:var(--mute);font:500 13px "DM Sans",sans-serif;padding:6px 11px;border-radius:99px;cursor:pointer}
+.modes button.on{background:var(--acc2);color:#fff}
+main{flex:1;position:relative;min-height:0;display:flex;flex-direction:column}
+.view{display:none;flex:1;min-height:0;flex-direction:column}
+.view.on{display:flex}
+#deck{flex:1;position:relative;margin:8px 16px 0;min-height:0}
+.card{position:absolute;inset:0;border-radius:22px;background:var(--surf);box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column;touch-action:none;user-select:none;will-change:transform}
+.card.back{transform:scale(.95) translateY(14px);opacity:.7;pointer-events:none}
+.photo{flex:0 0 46%;position:relative;display:flex;align-items:center;justify-content:center;font-size:84px}
+.photo .intent{position:absolute;top:12px;left:12px;background:rgba(0,0,0,.45);color:#fff;font-size:12px;font-weight:700;padding:4px 10px;border-radius:99px}
+.photo .score{position:absolute;top:12px;right:12px;background:var(--gold);color:#201800;font-weight:800;font-size:13px;padding:4px 10px;border-radius:99px}
+.info{padding:14px 16px;overflow:auto;flex:1}
+.info h2{font-size:26px;font-weight:800}
+.info h2 span{font-weight:500;color:var(--mute)}
+.meta{color:var(--mute);font-size:13px;margin-bottom:10px}
+.prompt{border-left:3px solid var(--acc);padding:2px 0 2px 10px;margin:8px 0 12px}
+.prompt small{color:var(--mute);display:block;font-size:12px}
+.prompt p{font:700 16px "Bricolage Grotesque",sans-serif}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);border-radius:99px;padding:4px 10px;font-size:13px;background:none;color:var(--ink);font-family:inherit}
+.chip.shared{background:var(--acc2);border-color:var(--acc2);color:#fff;font-weight:500}
+.stamp{position:absolute;top:70px;font:800 30px "Bricolage Grotesque",sans-serif;border:4px solid;border-radius:10px;padding:2px 12px;opacity:0;transform:rotate(-12deg);pointer-events:none}
+.stamp.l{left:18px;color:#38c27a}.stamp.n{right:18px;color:#ff5a5a;transform:rotate(12deg)}
+.actions{display:flex;justify-content:center;gap:14px;padding:14px 0 10px}
+.actions button{width:56px;height:56px;border-radius:50%;border:1px solid var(--line);background:var(--surf);font-size:24px;cursor:pointer;box-shadow:var(--shadow);transition:transform .12s}
+.actions button:active{transform:scale(.9)}
+.actions .sm{width:46px;height:46px;font-size:18px;align-self:center}
+.empty{margin:auto;text-align:center;padding:30px;color:var(--mute)}
+.empty h3{color:var(--ink);font-size:22px;margin-bottom:6px}
+.btn{background:var(--acc);color:#fff;border:0;border-radius:99px;padding:10px 18px;font:700 14px "DM Sans",sans-serif;cursor:pointer;margin-top:12px}
+nav{display:flex;border-top:1px solid var(--line);background:var(--surf)}
+nav button{flex:1;border:0;background:none;padding:10px 0 8px;color:var(--mute);font:500 12px "DM Sans",sans-serif;cursor:pointer;position:relative}
+nav button b{display:block;font-size:20px;font-weight:400}
+nav button.on{color:var(--acc)}
+nav .dot{position:absolute;top:6px;left:calc(50% + 8px);background:var(--acc);color:#fff;border-radius:99px;font-size:10px;padding:0 5px}
+.list{overflow:auto;padding:8px 16px}
+.row{display:flex;gap:12px;align-items:center;padding:10px;border-radius:14px;background:var(--surf);border:1px solid var(--line);margin-bottom:8px;cursor:pointer;width:100%;text-align:left;color:var(--ink);font-family:inherit}
+.av{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;flex:none}
+.row small{color:var(--mute);display:block}
+.chat{display:none;position:absolute;inset:0;background:var(--bg);flex-direction:column;z-index:5}
+.chat.on{display:flex}
+.chat header{border-bottom:1px solid var(--line)}
+.msgs{flex:1;overflow:auto;padding:12px 16px;display:flex;flex-direction:column;gap:6px}
+.m{max-width:78%;padding:8px 12px;border-radius:16px;background:var(--surf);border:1px solid var(--line)}
+.m.me{align-self:flex-end;background:var(--acc);border-color:var(--acc);color:#fff}
+.ice{display:flex;gap:6px;overflow-x:auto;padding:4px 16px}
+.ice button{flex:none;border:1px dashed var(--acc2);color:var(--acc2);background:none;border-radius:99px;padding:6px 12px;font:500 13px "DM Sans",sans-serif;cursor:pointer}
+.send{display:flex;gap:8px;padding:8px 16px 12px}
+.send input{flex:1;border:1px solid var(--line);background:var(--surf);color:var(--ink);border-radius:99px;padding:10px 14px;font:inherit}
+.me-sec{padding:6px 16px 16px;overflow:auto}
+.me-sec h3{margin:14px 0 8px}
+.chip.pick{cursor:pointer}.chip.pick.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:9;padding:20px}
+.modal.on{display:flex}
+.modal div{background:var(--surf);border-radius:22px;padding:26px;text-align:center;max-width:320px}
+.modal h2{font-size:30px;color:var(--acc);margin-bottom:6px}
+.pair{font-size:44px;margin:8px 0}
+button:focus-visible,input:focus-visible{outline:3px solid var(--acc2);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.ov{position:fixed;inset:0;background:var(--bg);display:none;align-items:center;justify-content:center;z-index:30;overflow:auto;padding:20px}.ov.on{display:flex}
+.box{width:100%;max-width:380px;display:flex;flex-direction:column;gap:10px;margin:auto}.box h1{font-size:34px;font-weight:800;color:var(--acc)}
+.box input,.box select,.box textarea{border:1px solid var(--line);background:var(--surf);color:var(--ink);border-radius:12px;padding:11px 13px;font:inherit}
+.box label{font-size:13px;color:var(--mute)}.btn.alt{background:none;color:var(--acc2);border:1px solid var(--acc2)}.err{color:var(--acc);font-size:13px;min-height:18px}
+</style>
+</head>
+<body>
+<div class="ov" id="auth"><div class="box"><h1>Kindle</h1><p class="meta">Dating with intent. For people 18 and over.</p>
+<input id="em" type="email" placeholder="Email" autocomplete="email"><input id="pw" type="password" placeholder="Password (8+ characters)" autocomplete="current-password">
+<button class="btn" id="lin">Log in</button><button class="btn alt" id="sup">Create account</button><p class="err" id="aerr"></p></div></div>
+<div class="ov" id="setup"><div class="box"><h2 class="disp">Set up your profile</h2>
+<label>First name</label><input id="sn" maxlength="40"><label>Birthdate (you must be 18+)</label><input id="sb" type="date"><label>I am</label><select id="sg"><option value="">Select…</option><option value="woman">Woman</option><option value="man">Man</option><option value="nonbinary">Non-binary</option></select><label>Interested in (pick all that apply)</label><div class="chips" id="sgi"></div>
+<label>I’m looking for</label><select id="si"><option>Serious</option><option selected>Casual</option><option>Friends</option></select>
+<label>Prompt</label><select id="sq"><option>Ask me about</option><option>Best first date</option><option>Typical Sunday</option></select><textarea id="sa" rows="3" maxlength="300" placeholder="Your answer"></textarea>
+<label>Interests</label><div class="chips" id="sch"></div><label>Photo</label><input id="sp" type="file" accept="image/*">
+<button class="btn" id="sgo">Start swiping</button><p class="err" id="serr"></p></div></div>
+<div id="app">
+  <header><h1>Kindle</h1>
+    <div class="modes" id="modes" role="group" aria-label="What are you looking for"></div>
+  </header>
+  <main>
+    <section class="view on" id="v-discover">
+      <div id="deck"></div>
+      <div class="actions">
+        <button class="sm" id="b-undo" title="Rewind" aria-label="Rewind">↩</button>
+        <button id="b-nope" title="Pass" aria-label="Pass">✕</button>
+        <button id="b-super" title="Super like" aria-label="Super like">★</button>
+        <button id="b-like" title="Like" aria-label="Like">♥</button>
+        <button class="sm" id="b-flag" title="Report or block" aria-label="Report or block">⚑</button>
+      </div>
+    </section>
+    <section class="view" id="v-matches"><div class="list" id="mlist"></div></section>
+    <section class="view" id="v-me"><div class="me-sec" id="me"></div></section>
+    <div class="chat" id="chat">
+      <header><button class="btn" style="margin:0;padding:6px 12px" id="back">Back</button><h3 id="cname"></h3><button class="btn" style="margin:0;padding:6px 12px;background:none;color:var(--mute)" id="flag">Report</button></header>
+      <div class="msgs" id="msgs"></div>
+      <div class="ice" id="ice"></div>
+      <form class="send" id="sendf"><input id="inp" placeholder="Say something kind…" autocomplete="off"><button class="btn" style="margin:0">Send</button></form>
+    </div>
+  </main>
+  <nav>
+    <button class="on" data-v="discover"><b>🔥</b>Discover</button>
+    <button data-v="matches"><b>💬</b>Matches<span class="dot" id="dot" hidden></span></button>
+    <button data-v="me"><b>🙂</b>My profile</button>
+  </nav>
+</div>
+<div class="modal" id="modal"><div>
+  <h2>It’s a match!</h2><div class="pair" id="pair"></div>
+  <p id="mtxt"></p>
+  <button class="btn" id="mchat">Start chatting</button>
+  <button class="btn" style="background:none;color:var(--mute)" id="mkeep">Keep swiping</button>
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="api.js"></script>
+<script>
+var INTERESTS=["Hiking","Coffee","Live music","Cooking","Board games","Film","Climbing","Travel","Books","Yoga","Photography","Dogs","Gaming","Art","Running","Vinyl"];
+var S={mode:"All",mine:[],queue:[],hist:[],matches:[],cur:null,ch:null,me:null,into:[]};
+var GEN=[["woman","Women"],["man","Men"],["nonbinary","Non-binary people"]],GL={woman:"Woman",man:"Man",nonbinary:"Non-binary"};
+function gchips(el){el.innerHTML=GEN.map(function(g){return '<button type="button" class="chip pick'+(S.into.indexOf(g[0])>-1?" on":"")+'" data-g="'+g[0]+'">'+g[1]+'</button>'}).join("")}
+API.saveProfile=async function(p){var u=await API.user();return sb.from("profiles").upsert({id:u.id,name:p.name,birthdate:p.birthdate,gender:p.gender,interested_in:p.interested_in,intent:p.intent,prompt_q:p.prompt_q,prompt_a:p.prompt_a,interests:p.interests})};
+var $=function(id){return document.getElementById(id)};
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function age(b){var d=new Date(b),n=new Date(),a=n.getFullYear()-d.getFullYear();if(n.getMonth()<d.getMonth()||(n.getMonth()==d.getMonth()&&n.getDate()<d.getDate()))a--;return a}
+function hue(id){var h=0;for(var i=0;i<id.length;i++)h=(h*31+id.charCodeAt(i))%360;return h}
+function bg(p){var u=API.photoUrl(p.photo_path),h=hue(p.id);return u?"background:center/cover url('"+u+"')":"background:linear-gradient(145deg,hsl("+h+",70%,62%),hsl("+(h+50)+",65%,38%))"}
+function score(p){var sh=(p.interests||[]).filter(function(x){return S.mine.indexOf(x)>-1}).length;return Math.min(98,52+sh*12+(S.mode===p.intent?8:0))}
+function say(id,t){$(id).textContent=t}
+function toast(t){var e=document.createElement("div");e.textContent=t;e.style.cssText="position:fixed;top:60px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:99px;z-index:40;font-weight:500";document.body.appendChild(e);setTimeout(function(){e.remove()},2200)}
+async function shrink(f){var b=await createImageBitmap(f),k=Math.min(1,900/Math.max(b.width,b.height)),c=document.createElement("canvas");c.width=b.width*k;c.height=b.height*k;c.getContext("2d").drawImage(b,0,0,c.width,c.height);return new Promise(function(r){c.toBlob(r,"image/jpeg",.85)})}
+function chips(el){el.innerHTML=INTERESTS.map(function(x){return '<button type="button" class="chip pick'+(S.mine.indexOf(x)>-1?" on":"")+'" data-i="'+x+'">'+x+'</button>'}).join("")}
+document.addEventListener("click",async function(e){var i=e.target.dataset&&e.target.dataset.i;if(!i||!e.target.classList.contains("pick"))return;var k=S.mine.indexOf(i);k>-1?S.mine.splice(k,1):S.mine.push(i);e.target.classList.toggle("on");if(S.me&&!$("setup").classList.contains("on")){await API.saveProfile(pobj());loadQueue()}});
+document.addEventListener("click",async function(e){var g=e.target.dataset&&e.target.dataset.g;if(!g||!e.target.classList.contains("pick"))return;var k=S.into.indexOf(g);k>-1?S.into.splice(k,1):S.into.push(g);e.target.classList.toggle("on");if(S.me&&!$("setup").classList.contains("on")){if(!S.into.length){S.into.push(g);e.target.classList.add("on");return toast("Pick at least one.")}await API.saveProfile(pobj());loadQueue()}});
+function pobj(){var p=S.me;return {name:p.name,birthdate:p.birthdate,gender:p.gender,interested_in:S.into,intent:p.intent,prompt_q:p.prompt_q,prompt_a:p.prompt_a,interests:S.mine}}
+/* ---- start-up and login ---- */
+async function init(){
+ if(SUPABASE_URL.indexOf("YOUR-PROJECT")>-1){$("auth").classList.add("on");return say("aerr","Add your Supabase URL and anon key at the top of api.js first.")}
+ var u=await API.user();if(!u){$("auth").classList.add("on");return}
+ $("auth").classList.remove("on");var r=await API.myProfile();
+ if(!r.data||!r.data.gender){var d=r.data||{};if(d.name)$("sn").value=d.name;if(d.birthdate)$("sb").value=d.birthdate;if(d.intent)$("si").value=d.intent;S.mine=d.interests||[];S.into=d.interested_in||[];chips($("sch"));gchips($("sgi"));$("setup").classList.add("on");return}
+ S.me=r.data;S.mine=S.me.interests||[];S.into=S.me.interested_in||[];$("setup").classList.remove("on");start()}
+$("lin").onclick=async function(){var r=await API.signIn($("em").value,$("pw").value);if(r.error)return say("aerr",r.error.message);init()};
+$("sup").onclick=async function(){if($("pw").value.length<8)return say("aerr","Use a password with 8+ characters.");var r=await API.signUp($("em").value,$("pw").value);if(r.error)return say("aerr",r.error.message);if(!r.data.session)return say("aerr","Check your email to confirm your account, then log in.");init()};
+$("sgo").onclick=async function(){
+ var n=$("sn").value.trim(),b=$("sb").value;if(!n||!b)return say("serr","Enter your name and birthdate.");var g=$("sg").value;if(!g)return say("serr","Select your gender.");if(!S.into.length)return say("serr","Pick who you’re interested in.");
+ if(age(b)<18)return say("serr","Kindle is for people 18 and over.");
+ var r=await API.saveProfile({name:n,birthdate:b,gender:g,interested_in:S.into,intent:$("si").value,prompt_q:$("sq").value,prompt_a:$("sa").value.slice(0,300),interests:S.mine});
+ if(r.error)return say("serr",r.error.message);
+ var f=$("sp").files[0];if(f){await API.uploadPhoto(await shrink(f))}
+ init()};
+async function start(){modes();await loadQueue();await loadMatches();meView();API.onMatch(function(){loadMatches();toast("New match!")})}
+/* ---- discover ---- */
+function modes(){$("modes").innerHTML=["All","Serious","Casual","Friends"].map(function(m){return '<button class="'+(S.mode===m?"on":"")+'" data-m="'+m+'">'+m+'</button>'}).join("")}
+$("modes").onclick=function(e){var m=e.target.dataset.m;if(m){S.mode=m;modes();loadQueue()}};
+async function loadQueue(){var r=await API.discover(S.mode);S.queue=(r.data||[]).sort(function(a,b){return score(b)-score(a)});S.hist=[];render()}
+function cardHTML(p){var ch=(p.interests||[]).map(function(x){return '<span class="chip'+(S.mine.indexOf(x)>-1?" shared":"")+'">'+esc(x)+'</span>'}).join("");
+ return '<div class="photo" style="'+bg(p)+'">'+(p.photo_path?"":esc(p.name[0]))+'<span class="intent">'+esc(p.intent)+'</span><span class="score">'+score(p)+'% match</span></div><div class="info"><h2>'+esc(p.name)+' <span>'+age(p.birthdate)+'</span></h2><div class="meta">Green chips are interests you share</div>'+(p.prompt_a?'<div class="prompt"><small>'+esc(p.prompt_q)+'</small><p>'+esc(p.prompt_a)+'</p></div>':"")+'<div class="chips">'+ch+'</div></div><div class="stamp l">LIKE</div><div class="stamp n">PASS</div>'}
+function render(){var d=$("deck");d.innerHTML="";
+ if(!S.queue.length){d.innerHTML='<div class="empty"><h3>You’re all caught up</h3><p>No new people in '+(S.mode==="All"?"your area":esc(S.mode))+' right now. Check back soon or try another mode.</p><button class="btn" id="again">Refresh</button></div>';$("again").onclick=loadQueue;return}
+ for(var k=Math.min(2,S.queue.length)-1;k>=0;k--){var c=document.createElement("div");c.className="card"+(k?" back":"");c.innerHTML=cardHTML(S.queue[k]);d.appendChild(c);if(!k)drag(c)}}
+function drag(c){var x0=0,y0=0,dx=0,on=false;
+ c.onpointerdown=function(e){on=true;x0=e.clientX;y0=e.clientY;c.setPointerCapture(e.pointerId);c.style.transition="none"};
+ c.onpointermove=function(e){if(!on)return;dx=e.clientX-x0;var dy=e.clientY-y0;c.style.transform="translate("+dx+"px,"+dy*.3+"px) rotate("+dx/18+"deg)";c.querySelector(".l").style.opacity=Math.max(0,dx/90);c.querySelector(".n").style.opacity=Math.max(0,-dx/90)};
+ c.onpointerup=function(){if(!on)return;on=false;if(dx>90)swipe("like");else if(dx<-90)swipe("nope");else{c.style.transition="transform .2s";c.style.transform="";c.querySelector(".l").style.opacity=0;c.querySelector(".n").style.opacity=0}dx=0}}
+async function swipe(kind){var c=$("deck").querySelector(".card:not(.back)"),p=S.queue[0];if(!p||!c)return;
+ c.style.transition="transform .3s";c.style.transform={like:"translateX(130%) rotate(20deg)",nope:"translateX(-130%) rotate(-20deg)",super:"translateY(-130%)"}[kind];
+ var h={p:p,matched:false};S.hist.push(h);S.queue.shift();setTimeout(render,260);
+ var r=await API.swipe(p.id,kind);if(r.error){toast("Couldn’t save that swipe. Try again.");return}
+ if(r.matched){h.matched=true;S.cur={id:r.matchId,other:p};$("pair").textContent="🙂 ❤️ 🙂";say("mtxt","You and "+p.name+" liked each other.");$("modal").classList.add("on");loadMatches()}}
+$("b-like").onclick=function(){swipe("like")};$("b-nope").onclick=function(){swipe("nope")};$("b-super").onclick=function(){swipe("super")};
+$("b-undo").onclick=async function(){var h=S.hist.pop();if(!h)return;if(h.matched){S.hist.push(h);return toast("You can’t rewind a match.")}await API.rewind(h.p.id);S.queue.unshift(h.p);render()};
+async function safety(p){var why=prompt("Report and block "+p.name+"? Say what happened, or leave it empty to only block.");if(why===null)return;if(why.trim())await API.report(p.id,why.trim());await API.block(p.id);toast(p.name+" is blocked");$("chat").classList.remove("on");loadQueue();loadMatches()}
+$("b-flag").onclick=function(){if(S.queue[0])safety(S.queue[0])};
+$("mkeep").onclick=function(){$("modal").classList.remove("on")};
+$("mchat").onclick=function(){$("modal").classList.remove("on");openChat(S.cur)};
+/* ---- matches and chat ---- */
+async function loadMatches(){var r=await API.matches(),rows=r.data||[],ids=rows.map(function(m){return m.user_a===S.me.id?m.user_b:m.user_a}),ps={};
+ if(ids.length){var q=await sb.from("profiles").select("*").in("id",ids);(q.data||[]).forEach(function(p){ps[p.id]=p})}
+ S.matches=rows.map(function(m){return {id:m.id,other:ps[m.user_a===S.me.id?m.user_b:m.user_a]}}).filter(function(m){return m.other});mlist()}
+function mlist(){var l=$("mlist");if(!S.matches.length){l.innerHTML='<div class="empty"><h3>No matches yet</h3><p>Swipe right on someone you like. Your matches show up here.</p></div>';return}
+ l.innerHTML=S.matches.map(function(m){var p=m.other;return '<button class="row" data-id="'+m.id+'"><span class="av" style="'+bg(p)+'">'+(p.photo_path?"":esc(p.name[0]))+'</span><span><b>'+esc(p.name)+'</b> <span style="color:var(--gold)">'+score(p)+'%</span><small>Tap to chat</small></span></button>'}).join("")}
+$("mlist").onclick=function(e){var r=e.target.closest(".row");if(r)openChat(S.matches.filter(function(m){return m.id===r.dataset.id})[0])};
+async function paint(){var r=await API.messages(S.cur.id),m=r.data||[];
+ $("msgs").innerHTML=m.length?m.map(function(x){return '<div class="m'+(x.sender===S.me.id?" me":"")+'">'+esc(x.body)+'</div>'}).join(""):'<div class="empty"><p>You matched with '+esc(S.cur.other.name)+'. Tap an icebreaker or write your own.</p></div>';$("msgs").scrollTop=1e5}
+function openChat(m){if(!m)return;S.cur=m;var p=m.other;$("cname").textContent=p.name;$("chat").classList.add("on");
+ var sh=(p.interests||[]).filter(function(x){return S.mine.indexOf(x)>-1}),t=(sh[0]||(p.interests||[])[0]||"weekend").toLowerCase();
+ $("ice").innerHTML=["What’s your "+t+" story?","What’s the best thing that happened this week?","Coffee or a walk first?"].map(function(x){return '<button type="button">'+x+'</button>'}).join("");
+ if(S.ch)sb.removeChannel(S.ch);S.ch=API.onMessage(m.id,paint);paint()}
+async function send(t){t=t.trim();if(!t)return;var r=await API.send(S.cur.id,t);if(r.error)return toast("Message not sent.");paint()}
+$("ice").onclick=function(e){if(e.target.tagName==="BUTTON")send(e.target.textContent)};
+$("sendf").onsubmit=function(e){e.preventDefault();send($("inp").value);$("inp").value=""};
+$("back").onclick=function(){$("chat").classList.remove("on");if(S.ch){sb.removeChannel(S.ch);S.ch=null}};
+$("flag").onclick=function(){safety(S.cur.other)};
+/* ---- my profile ---- */
+function meView(){var p=S.me;$("me").innerHTML='<h3>'+esc(p.name)+', '+age(p.birthdate)+'</h3><p class="meta">Looking for: '+esc(p.intent)+' · '+esc(GL[p.gender]||"")+'</p><label class="btn alt" style="display:inline-block;cursor:pointer">Change photo<input id="ph2" type="file" accept="image/*" hidden></label><h3>Interested in</h3><div class="chips" id="cg"></div><h3>Your interests</h3><div class="chips" id="ci"></div><h3>Theme</h3><div class="chips"><button class="chip pick" data-th="light">Light</button><button class="chip pick" data-th="dark">Dark</button></div><p><button class="btn alt" id="out">Log out</button></p>';
+ chips($("ci"));gchips($("cg"));$("ph2").onchange=async function(){var f=this.files[0];if(f){await API.uploadPhoto(await shrink(f));toast("Photo updated")}};
+ $("out").onclick=async function(){await API.signOut();location.reload()};
+ document.querySelectorAll("[data-th]").forEach(function(b){b.onclick=function(){document.documentElement.setAttribute("data-theme",b.dataset.th)}})}
+document.querySelector("nav").onclick=function(e){var b=e.target.closest("button");if(!b)return;document.querySelectorAll("nav button").forEach(function(x){x.classList.toggle("on",x===b)});document.querySelectorAll(".view").forEach(function(v){v.classList.toggle("on",v.id==="v-"+b.dataset.v)})};
+init();
+
+</script>
+</body>
+</html>
