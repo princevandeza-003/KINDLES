@@ -112,6 +112,7 @@ body[data-scene="me"]{--b1:#a58bff;--b2:#52c7b4;--b3:#ff9ab0}
 .pvn{position:absolute;top:40%;z-index:2;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.18);color:#fff;font-size:26px;cursor:pointer}.pvn.l{left:10px}.pvn.r{right:10px}.pvn[hidden]{display:none}
 .pvinfo{padding:14px 18px calc(18px + env(safe-area-inset-bottom,0px));max-height:38%;overflow:auto;background:rgba(0,0,0,.35)}.pvinfo h2{font-size:24px}.pvinfo .chip{color:#fff;border-color:rgba(255,255,255,.35)}.pvinfo .chip.shared{border-color:var(--acc2)}
 #cname{cursor:pointer}
+.vbtn{position:absolute;right:12px;bottom:12px;background:rgba(0,0,0,.5);color:#fff;font-size:12px;font-weight:700;padding:5px 10px;border-radius:99px}
 </style>
 </head>
 <body>
@@ -137,7 +138,7 @@ body[data-scene="me"]{--b1:#a58bff;--b2:#52c7b4;--b3:#ff9ab0}
         <button id="b-nope" title="Pass" aria-label="Pass">✕</button>
         <button id="b-super" title="Super like" aria-label="Super like">★</button>
         <button id="b-like" title="Like" aria-label="Like">♥</button>
-        <button class="sm" id="b-flag" title="Report or block" aria-label="Report or block">⚑</button>
+        <button class="sm" id="b-flag" title="Report or block" aria-label="Report or block">⚑</button><button class="sm" id="b-view" title="View profile" aria-label="View profile">👤</button>
       </div>
     </section>
     <section class="view" id="v-matches"><div class="list" id="mlist"></div></section>
@@ -218,14 +219,14 @@ function modes(){$("modes").innerHTML=["All","Serious","Casual","Friends"].map(f
 $("modes").onclick=function(e){var m=e.target.dataset.m;if(m){S.mode=m;modes();loadQueue()}};
 async function loadQueue(){var r=await API.discover(S.mode);S.queue=(r.data||[]).sort(function(a,b){return score(b)-score(a)});S.hist=[];render()}
 function cardHTML(p){var ch=(p.interests||[]).map(function(x){return '<span class="chip'+(S.mine.indexOf(x)>-1?" shared":"")+'">'+esc(x)+'</span>'}).join("");
- return '<div class="photo" data-n="0" style="'+bg(p)+'">'+(pl(p).length?"":esc(p.name[0]))+(pl(p).length>1?'<span class="dots">'+pl(p).map(function(x,k){return '<i'+(k?"":' class="on"')+'></i>'}).join("")+'</span>':"")+'<span class="intent">'+esc(p.intent)+'</span><span class="score">'+score(p)+'% match</span></div><div class="info"><h2>'+esc(p.name)+' <span>'+age(p.birthdate)+'</span></h2><div class="meta">'+(p.distance_km!=null?(p.distance_km<2?"Under 2 km away":p.distance_km+" km away")+" · ":"")+'Green chips are interests you share</div>'+(p.prompt_a?'<div class="prompt"><small>'+esc(p.prompt_q)+'</small><p>'+esc(p.prompt_a)+'</p></div>':"")+'<div class="chips">'+ch+'</div></div><div class="stamp l">LIKE</div><div class="stamp n">PASS</div>'}
+ return '<div class="photo" data-n="0" style="'+bg(p)+'">'+(pl(p).length?"":esc(p.name[0]))+(pl(p).length>1?'<span class="dots">'+pl(p).map(function(x,k){return '<i'+(k?"":' class="on"')+'></i>'}).join("")+'</span>':"")+'<span class="vbtn">View profile</span><span class="intent">'+esc(p.intent)+'</span><span class="score">'+score(p)+'% match</span></div><div class="info"><h2>'+esc(p.name)+' <span>'+age(p.birthdate)+'</span></h2><div class="meta">'+(p.distance_km!=null?(p.distance_km<2?"Under 2 km away":p.distance_km+" km away")+" · ":"")+'Green chips are interests you share</div>'+(p.prompt_a?'<div class="prompt"><small>'+esc(p.prompt_q)+'</small><p>'+esc(p.prompt_a)+'</p></div>':"")+'<div class="chips">'+ch+'</div></div><div class="stamp l">LIKE</div><div class="stamp n">PASS</div>'}
 function render(){var d=$("deck");d.innerHTML="";
  if(!S.queue.length){d.innerHTML='<div class="empty"><h3>You’re all caught up</h3><p>No new people in '+(S.mode==="All"?"your area":esc(S.mode))+' right now. Check back soon or try another mode.</p><button class="btn" id="again">Refresh</button></div>';$("again").onclick=loadQueue;return}
  for(var k=Math.min(2,S.queue.length)-1;k>=0;k--){var c=document.createElement("div");c.className="card"+(k?" back":"");c.innerHTML=cardHTML(S.queue[k]);d.appendChild(c);if(!k)drag(c)}}
 function drag(c){var x0=0,y0=0,dx=0,on=false;
  c.onpointerdown=function(e){on=true;x0=e.clientX;y0=e.clientY;c.setPointerCapture(e.pointerId);c.style.transition="none"};
  c.onpointermove=function(e){if(!on)return;dx=e.clientX-x0;var dy=e.clientY-y0;c.style.transform="translate("+dx+"px,"+dy*.3+"px) rotate("+dx/18+"deg)";c.querySelector(".l").style.opacity=Math.max(0,dx/90);c.querySelector(".n").style.opacity=Math.max(0,-dx/90)};
- c.onpointerup=function(e){if(!on)return;on=false;if(Math.abs(dx)<6&&e.target.closest(".photo")){cycle(c);dx=0;return}if(Math.abs(dx)<6&&e.target.closest(".info")){viewProfile(S.queue[0]);dx=0;return}if(dx>90)swipe("like");else if(dx<-90)swipe("nope");else{c.style.transition="transform .2s";c.style.transform="";c.querySelector(".l").style.opacity=0;c.querySelector(".n").style.opacity=0}dx=0}}
+ c.onpointerup=function(e){if(!on)return;on=false;if(Math.abs(dx)<6){var el=document.elementFromPoint(e.clientX,e.clientY)||e.target;if(el.closest(".vbtn")||el.closest(".info")){viewProfile(S.queue[0])}else if(el.closest(".photo")){cycle(c)}dx=0;return}if(dx>90)swipe("like");else if(dx<-90)swipe("nope");else{c.style.transition="transform .2s";c.style.transform="";c.querySelector(".l").style.opacity=0;c.querySelector(".n").style.opacity=0}dx=0}}
 async function swipe(kind){var c=$("deck").querySelector(".card:not(.back)"),p=S.queue[0];if(!p||!c)return;
  c.style.transition="transform .3s";c.style.transform={like:"translateX(130%) rotate(20deg)",nope:"translateX(-130%) rotate(-20deg)",super:"translateY(-130%)"}[kind];
  var h={p:p,matched:false};S.hist.push(h);S.queue.shift();setTimeout(render,260);
@@ -299,6 +300,7 @@ $("pvl").onclick=function(){pvStep(-1)};$("pvr").onclick=function(){pvStep(1)};$
 $("cname").onclick=function(){if(S.cur)viewProfile(S.cur.other)};
 document.addEventListener("keydown",function(e){if($("pv").hidden)return;if(e.key==="Escape")$("pv").hidden=true;if(e.key==="ArrowRight")pvStep(1);if(e.key==="ArrowLeft")pvStep(-1)});
 
+$("b-view").onclick=function(){if(S.queue[0])viewProfile(S.queue[0])};
 init();
 
 </script>
