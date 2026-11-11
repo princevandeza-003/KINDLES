@@ -117,6 +117,12 @@ body[data-scene="search"]{--b1:#ffd36e;--b2:#52c7b4;--b3:#a58bff}
 .fx{position:fixed;z-index:200;pointer-events:none;transform:translate(-50%,-50%);animation:fx .9s ease-out forwards}
 @keyframes fx{0%{opacity:1;transform:translate(-50%,-50%) scale(.4)}70%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(1.2)}}
 @media (prefers-reduced-motion:reduce){.fx{display:none}}
+.vbadge{display:inline-block;background:var(--acc2);color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;line-height:18px;text-align:center;vertical-align:middle}
+.dq{margin:6px auto 0;width:calc(100% - 32px);max-width:560px;text-align:left;background:var(--surf);border:1px solid var(--line);border-radius:14px;padding:8px 12px;color:var(--ink);font:13px/1.35 "DM Sans",sans-serif;cursor:pointer}
+.rx{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}.rx span{background:var(--bg);border:1px solid var(--line);border-radius:99px;padding:0 6px;font-size:13px;color:var(--ink)}
+.picker{position:fixed;z-index:60;display:flex;gap:4px;background:var(--surf);border:1px solid var(--line);border-radius:99px;padding:6px 10px;box-shadow:var(--shadow)}
+.picker button{border:0;background:none;font-size:22px;cursor:pointer;padding:2px 4px}
+.seen{align-self:flex-end;font-size:12px;color:var(--mute)}
 </style>
 </head>
 <body>
@@ -136,7 +142,7 @@ body[data-scene="search"]{--b1:#ffd36e;--b2:#52c7b4;--b3:#a58bff}
   </header>
   <main>
     <section class="view on" id="v-discover">
-      <div id="deck"></div>
+      <button class="dq" id="dq" type="button"></button><div id="deck"></div>
       <div class="actions">
         <button class="sm" id="b-undo" title="Rewind" aria-label="Rewind">↩</button>
         <button id="b-nope" title="Pass" aria-label="Pass">✕</button>
@@ -151,7 +157,7 @@ body[data-scene="search"]{--b1:#ffd36e;--b2:#52c7b4;--b3:#a58bff}
     <div class="chat" id="chat">
       <header><button class="btn" style="margin:0;padding:6px 12px" id="back">Back</button><h3 id="cname"></h3><button class="btn" style="margin:0;padding:6px 12px;background:none;color:var(--mute)" id="flag">Report</button></header>
       <div class="msgs" id="msgs"></div>
-      <div class="ice" id="ice"></div>
+      <div id="typing" style="min-height:18px;padding:0 18px;font-size:13px;color:var(--mute)"></div><div class="ice" id="ice"></div>
       <form class="send" id="sendf"><button type="button" class="btn alt" id="mic" style="margin:0" aria-label="Record voice message">🎤</button><input id="inp" placeholder="Say something kind…" autocomplete="off"><button class="btn" style="margin:0">Send</button></form>
     </div>
   </main>
@@ -218,13 +224,13 @@ $("sgo").onclick=async function(){
  if(r.error)return say("serr",r.error.message);
  var fl=$("sp").files;if(fl.length){await API.addPhotos(fl)}
  init()};
-async function start(){modes();S.hasLoc=await API.hasLocation();await loadQueue();await loadMatches();meView();API.onMatch(function(){loadMatches();toast("New match!")})}
+async function start(){modes();loadMyAns();S.hasLoc=await API.hasLocation();await loadQueue();await loadMatches();meView();API.onMatch(function(){loadMatches();toast("New match!")})}
 /* ---- discover ---- */
 function modes(){$("modes").innerHTML=["All","Serious","Casual","Friends"].map(function(m){return '<button class="'+(S.mode===m?"on":"")+'" data-m="'+m+'">'+m+'</button>'}).join("")}
 $("modes").onclick=function(e){var m=e.target.dataset.m;if(m){S.mode=m;modes();loadQueue()}};
-async function loadQueue(){var r=await API.discover(S.mode);S.queue=(r.data||[]).sort(function(a,b){return score(b)-score(a)});S.hist=[];render()}
+async function loadQueue(){var r=await API.discover(S.mode);S.queue=(r.data||[]).sort(function(a,b){return score(b)-score(a)});await loadExtras(S.queue.map(function(p){return p.id}));S.hist=[];render()}
 function cardHTML(p){var ch=(p.interests||[]).map(function(x){return '<span class="chip'+(S.mine.indexOf(x)>-1?" shared":"")+'">'+esc(x)+'</span>'}).join("");
- return '<div class="photo" data-n="0" style="'+bg(p)+'">'+(pl(p).length?"":esc(p.name[0]))+(pl(p).length>1?'<span class="dots">'+pl(p).map(function(x,k){return '<i'+(k?"":' class="on"')+'></i>'}).join("")+'</span>':"")+'<span class="vbtn">View profile</span><span class="intent">'+esc(p.intent)+'</span><span class="score">'+score(p)+'% match</span></div><div class="info"><h2>'+esc(p.name)+' <span>'+age(p.birthdate)+'</span></h2><div class="meta">'+(p.distance_km!=null?(p.distance_km<2?"Under 2 km away":p.distance_km+" km away")+" · ":"")+'Green chips are interests you share</div>'+(p.prompt_a?'<div class="prompt"><small>'+esc(p.prompt_q)+'</small><p>'+esc(p.prompt_a)+'</p></div>':"")+'<div class="chips">'+ch+'</div></div><div class="stamp l">LIKE</div><div class="stamp n">PASS</div>'}
+ return '<div class="photo" data-n="0" style="'+bg(p)+'">'+(pl(p).length?"":esc(p.name[0]))+(pl(p).length>1?'<span class="dots">'+pl(p).map(function(x,k){return '<i'+(k?"":' class="on"')+'></i>'}).join("")+'</span>':"")+'<span class="vbtn">View profile</span><span class="intent">'+esc(p.intent)+'</span><span class="score">'+score(p)+'% match</span></div><div class="info"><h2>'+esc(p.name)+vb(p.id)+' <span>'+age(p.birthdate)+'</span></h2><div class="meta">'+(p.distance_km!=null?(p.distance_km<2?"Under 2 km away":p.distance_km+" km away")+" · ":"")+'Green chips are interests you share</div>'+(p.prompt_a?'<div class="prompt"><small>'+esc(p.prompt_q)+'</small><p>'+esc(p.prompt_a)+'</p></div>':"")+daBlock(p.id)+'<div class="chips">'+ch+'</div></div><div class="stamp l">LIKE</div><div class="stamp n">PASS</div>'}
 function render(){var d=$("deck");d.innerHTML="";
  if(!S.queue.length){d.innerHTML='<div class="empty"><h3>You’re all caught up</h3><p>No new people in '+(S.mode==="All"?"your area":esc(S.mode))+' right now. Check back soon or try another mode.</p><button class="btn" id="again">Refresh</button></div>';$("again").onclick=loadQueue;return}
  for(var k=Math.min(2,S.queue.length)-1;k>=0;k--){var c=document.createElement("div");c.className="card"+(k?" back":"");c.innerHTML=cardHTML(S.queue[k]);d.appendChild(c);if(!k)drag(c)}}
@@ -246,24 +252,33 @@ $("mchat").onclick=function(){$("modal").classList.remove("on");openChat(S.cur)}
 /* ---- matches and chat ---- */
 async function loadMatches(){var r=await API.matches(),rows=r.data||[],ids=rows.map(function(m){return m.user_a===S.me.id?m.user_b:m.user_a}),ps={};
  if(ids.length){var q=await sb.from("profiles").select("*").in("id",ids);(q.data||[]).forEach(function(p){ps[p.id]=p})}
- S.matches=rows.map(function(m){return {id:m.id,other:ps[m.user_a===S.me.id?m.user_b:m.user_a]}}).filter(function(m){return m.other});mlist()}
+ await loadExtras(ids);S.matches=rows.map(function(m){return {id:m.id,other:ps[m.user_a===S.me.id?m.user_b:m.user_a]}}).filter(function(m){return m.other});mlist()}
 function mlist(){var l=$("mlist");if(!S.matches.length){l.innerHTML='<div class="empty"><h3>No matches yet</h3><p>Swipe right on someone you like. Your matches show up here.</p></div>';return}
- l.innerHTML=S.matches.map(function(m){var p=m.other;return '<button class="row" data-id="'+m.id+'"><span class="av" data-view="'+p.id+'" title="View photos" style="'+bg(p)+'">'+(p.photo_path?"":esc(p.name[0]))+'</span><span><b>'+esc(p.name)+'</b> <span style="color:var(--gold)">'+score(p)+'%</span><small>Tap to chat</small></span></button>'}).join("")}
+ l.innerHTML=S.matches.map(function(m){var p=m.other;return '<button class="row" data-id="'+m.id+'"><span class="av" data-view="'+p.id+'" title="View photos" style="'+bg(p)+'">'+(p.photo_path?"":esc(p.name[0]))+'</span><span><b>'+esc(p.name)+'</b>'+vb(p.id)+' <span style="color:var(--gold)">'+score(p)+'%</span><small>Tap to chat</small></span></button>'}).join("")}
 $("mlist").onclick=function(e){var v=e.target.closest("[data-view]");if(v){var mm=S.matches.filter(function(m){return m.other.id===v.dataset.view})[0];if(mm)viewProfile(mm.other);return}var r=e.target.closest(".row");if(r)openChat(S.matches.filter(function(m){return m.id===r.dataset.id})[0])};
-async function paint(){var r=await API.messages(S.cur.id),m=r.data||[];for(var q=0;q<m.length;q++){if(m[q].audio_path&&!AU[m[q].audio_path]){var sg=await sb.storage.from("voice").createSignedUrl(m[q].audio_path,3600);AU[m[q].audio_path]=sg.data&&sg.data.signedUrl}}
- $("msgs").innerHTML=m.length?m.map(function(x){return '<div class="m'+(x.sender===S.me.id?" me":"")+'">'+(x.audio_path?(AU[x.audio_path]?'<audio controls preload="none" src="'+AU[x.audio_path]+'"></audio>':"Voice message unavailable"):esc(x.body))+'</div>'}).join(""):'<div class="empty"><p>You matched with '+esc(S.cur.other.name)+'. Tap an icebreaker or write your own.</p></div>';$("msgs").scrollTop=1e5}
+async function paint(){var cur=S.cur;if(!cur)return;var r=await API.messages(cur.id),m=r.data||[];
+ for(var q=0;q<m.length;q++){if(m[q].audio_path&&!AU[m[q].audio_path]){var sg=await sb.storage.from("voice").createSignedUrl(m[q].audio_path,3600);AU[m[q].audio_path]=sg.data&&sg.data.signedUrl}}
+ var ids=m.map(function(x){return x.id}),rx={};
+ if(ids.length){var rr=await sb.from("message_reactions").select("*").in("message_id",ids);(rr.data||[]).forEach(function(x){(rx[x.message_id]=rx[x.message_id]||[]).push(x)})}
+ if(S.cur!==cur)return;
+ if(m.some(function(x){return x.sender!==S.me.id&&!x.read_at})){sb.from("messages").update({read_at:new Date().toISOString()}).eq("match_id",cur.id).neq("sender",S.me.id).is("read_at",null).then(function(){})}
+ var lastMine=-1;m.forEach(function(x,k){if(x.sender===S.me.id)lastMine=k});
+ $("msgs").innerHTML=m.length?m.map(function(x,k){var mine=x.sender===S.me.id,g={};(rx[x.id]||[]).forEach(function(y){g[y.emoji]=(g[y.emoji]||0)+1});
+  var rh=Object.keys(g).map(function(e){return '<span>'+e+(g[e]>1?" "+g[e]:"")+'</span>'}).join("");
+  return '<div class="m'+(mine?" me":"")+'" data-mid="'+x.id+'">'+(x.audio_path?(AU[x.audio_path]?'<audio controls preload="none" src="'+AU[x.audio_path]+'"></audio>':"Voice message unavailable"):esc(x.body))+(rh?'<div class="rx">'+rh+'</div>':"")+'</div>'+(mine&&k===lastMine&&x.read_at?'<div class="seen">✓ Seen</div>':"")}).join(""):'<div class="empty"><p>You matched with '+esc(cur.other.name)+'. Tap an icebreaker or write your own.</p></div>';
+ $("msgs").scrollTop=1e5}
 function openChat(m){if(!m)return;S.cur=m;var p=m.other;$("cname").innerHTML='<span class="av" style="width:34px;height:34px;display:inline-flex;font-size:16px;vertical-align:middle;margin-right:8px;'+bg(p)+'">'+(p.photo_path?"":esc(p.name[0]))+'</span>'+esc(p.name);$("chat").classList.add("on");
  var sh=(p.interests||[]).filter(function(x){return S.mine.indexOf(x)>-1}),t=(sh[0]||(p.interests||[])[0]||"weekend").toLowerCase();
- $("ice").innerHTML=["What’s your "+t+" story?","What’s the best thing that happened this week?","Coffee or a walk first?"].map(function(x){return '<button type="button">'+x+'</button>'}).join("");
- if(S.ch)sb.removeChannel(S.ch);S.ch=API.onMessage(m.id,paint);paint()}
+ $("ice").innerHTML=["What’s your "+t+" story?","What’s the best thing that happened this week?","Coffee or a walk first?"].concat(S.ans[p.id]?["Re your answer: “"+S.ans[p.id].slice(0,40)+(S.ans[p.id].length>40?"…":"")+"” tell me more"]:[]).map(function(x){return '<button type="button">'+x+'</button>'}).join("");
+ if(S.ch)sb.removeChannel(S.ch);if(S.ch2)sb.removeChannel(S.ch2);S.ch=API.onMessage(m.id,paint);S.ch2=sb.channel("room-"+m.id,{config:{broadcast:{self:false}}}).on("broadcast",{event:"typing"},showTyping).on("postgres_changes",{event:"*",schema:"public",table:"message_reactions"},paint).on("postgres_changes",{event:"UPDATE",schema:"public",table:"messages",filter:"match_id=eq."+m.id},paint).subscribe();paint()}
 async function send(t){t=t.trim();if(!t)return;var r=await API.send(S.cur.id,t);if(r.error)return toast("Message not sent.");paint()}
 $("ice").onclick=function(e){if(e.target.tagName==="BUTTON")send(e.target.textContent)};
 $("sendf").onsubmit=function(e){e.preventDefault();send($("inp").value);$("inp").value=""};
-$("back").onclick=function(){$("chat").classList.remove("on");if(S.ch){sb.removeChannel(S.ch);S.ch=null}};
+$("back").onclick=function(){$("chat").classList.remove("on");if(S.ch){sb.removeChannel(S.ch);S.ch=null}if(S.ch2){sb.removeChannel(S.ch2);S.ch2=null}$("typing").textContent=""};
 $("flag").onclick=function(){safety(S.cur.other)};
 /* ---- my profile ---- */
-function meView(){var p=S.me;$("me").innerHTML='<div class="mepic" style="'+bg(p)+'">'+(p.photo_path?"":esc(p.name[0]))+'</div><h3 style="text-align:center">'+esc(p.name)+', '+age(p.birthdate)+'</h3><p class="meta">Looking for: '+esc(p.intent)+' · '+esc(GL[p.gender]||"")+'</p><h3>Photos</h3><div class="gal" id="gal"></div><label class="btn alt" style="display:inline-block;cursor:pointer">Add from gallery<input id="ph2" type="file" accept="image/*" multiple hidden></label><h3>Location</h3><p class="meta" id="locmsg"></p><button class="btn alt" id="loc" type="button">Use my location</button> <button class="btn alt" id="noloc" type="button" hidden>Stop sharing</button><p class="meta" style="margin-top:10px">Show people within</p><select id="km" style="border:1px solid var(--line);background:var(--surf);color:var(--ink);border-radius:12px;padding:9px 12px;font:inherit"></select><h3>Interested in</h3><div class="chips" id="cg"></div><h3>Your interests</h3><div class="chips" id="ci"></div><h3>Theme</h3><div class="chips"><button class="chip pick" data-th="light">Light</button><button class="chip pick" data-th="dark">Dark</button></div><h3>Legal</h3><p><a class="btn alt" href="privacy.html" target="_blank" rel="noopener" style="display:inline-block;text-decoration:none">Privacy policy</a> <a class="btn alt" href="terms.html" target="_blank" rel="noopener" style="display:inline-block;text-decoration:none">Terms</a></p><h3>Account</h3><p><button class="btn alt" id="out">Log out</button> <button class="btn alt" id="del" style="color:var(--acc);border-color:var(--acc)">Delete my account</button></p>';
- chips($("ci"));gchips($("cg"));meExtras();
+function meView(){var p=S.me;$("me").innerHTML='<div class="mepic" style="'+bg(p)+'">'+(p.photo_path?"":esc(p.name[0]))+'</div><h3 style="text-align:center">'+esc(p.name)+(p.verified?' <span class="vbadge" title="Verified">✔</span>':'')+', '+age(p.birthdate)+'</h3><p class="meta">Looking for: '+esc(p.intent)+' · '+esc(GL[p.gender]||"")+'</p><h3>Photos</h3><div class="gal" id="gal"></div><label class="btn alt" style="display:inline-block;cursor:pointer">Add from gallery<input id="ph2" type="file" accept="image/*" multiple hidden></label><h3>Location</h3><p class="meta" id="locmsg"></p><button class="btn alt" id="loc" type="button">Use my location</button> <button class="btn alt" id="noloc" type="button" hidden>Stop sharing</button><p class="meta" style="margin-top:10px">Show people within</p><select id="km" style="border:1px solid var(--line);background:var(--surf);color:var(--ink);border-radius:12px;padding:9px 12px;font:inherit"></select><h3>Interested in</h3><div class="chips" id="cg"></div><h3>Your interests</h3><div class="chips" id="ci"></div><h3>Theme</h3><div class="chips"><button class="chip pick" data-th="light">Light</button><button class="chip pick" data-th="dark">Dark</button></div><h3>Verification</h3><p class="meta" id="vmsg"></p><label class="btn alt" style="display:inline-block;cursor:pointer" id="vlab">Take verification selfie<input id="vsf" type="file" accept="image/*" capture="user" hidden></label><h3>Legal</h3><p><a class="btn alt" href="privacy.html" target="_blank" rel="noopener" style="display:inline-block;text-decoration:none">Privacy policy</a> <a class="btn alt" href="terms.html" target="_blank" rel="noopener" style="display:inline-block;text-decoration:none">Terms</a></p><h3>Account</h3><p><button class="btn alt" id="out">Log out</button> <button class="btn alt" id="del" style="color:var(--acc);border-color:var(--acc)">Delete my account</button></p>';
+ chips($("ci"));gchips($("cg"));meExtras();verUI();
  $("out").onclick=async function(){await API.signOut();location.reload()};$("del").onclick=deleteAccount;
  document.querySelectorAll("[data-th]").forEach(function(b){b.onclick=function(){document.documentElement.setAttribute("data-theme",b.dataset.th)}})}
 document.querySelector("nav").onclick=function(e){var b=e.target.closest("button");if(!b)return;document.body.dataset.scene=b.dataset.v;document.querySelectorAll("nav button").forEach(function(x){x.classList.toggle("on",x===b)});document.querySelectorAll(".view").forEach(function(v){v.classList.toggle("on",v.id==="v-"+b.dataset.v)})};
@@ -298,7 +313,7 @@ function viewProfile(p){if(!p)return;PV.p=p;PV.n=0;pvShow();$("pv").hidden=false
 function pvShow(){var p=PV.p,l=pl(p),im=$("pvimg");
  im.style.cssText=l.length?"background-image:url('"+API.photoUrl(l[PV.n])+"')":bg(p);im.textContent=l.length?"":p.name[0];
  $("pvl").hidden=l.length<2;$("pvr").hidden=l.length<2;
- $("pvinfo").innerHTML='<h2>'+esc(p.name)+' <span style="font-weight:500;opacity:.7">'+age(p.birthdate)+'</span></h2><div class="meta" style="color:rgba(255,255,255,.7)">'+esc(p.intent)+(p.distance_km!=null?" · "+(p.distance_km<2?"Under 2 km away":p.distance_km+" km away"):"")+(l.length>1?" · Photo "+(PV.n+1)+" of "+l.length:"")+'</div>'+(p.prompt_a?'<div class="prompt"><small style="color:rgba(255,255,255,.7)">'+esc(p.prompt_q)+'</small><p>'+esc(p.prompt_a)+'</p></div>':"")+'<div class="chips">'+(p.interests||[]).map(function(x){return '<span class="chip'+(S.mine.indexOf(x)>-1?" shared":"")+'">'+esc(x)+'</span>'}).join("")+'</div>'}
+ $("pvinfo").innerHTML='<h2>'+esc(p.name)+vb(p.id)+' <span style="font-weight:500;opacity:.7">'+age(p.birthdate)+'</span></h2><div class="meta" style="color:rgba(255,255,255,.7)">'+esc(p.intent)+(p.distance_km!=null?" · "+(p.distance_km<2?"Under 2 km away":p.distance_km+" km away"):"")+(l.length>1?" · Photo "+(PV.n+1)+" of "+l.length:"")+'</div>'+(p.prompt_a?'<div class="prompt"><small style="color:rgba(255,255,255,.7)">'+esc(p.prompt_q)+'</small><p>'+esc(p.prompt_a)+'</p></div>':"")+daBlock(p.id)+'<div class="chips">'+(p.interests||[]).map(function(x){return '<span class="chip'+(S.mine.indexOf(x)>-1?" shared":"")+'">'+esc(x)+'</span>'}).join("")+'</div>'}
 function pvStep(d){var l=pl(PV.p);if(l.length<2)return;PV.n=(PV.n+d+l.length)%l.length;pvShow()}
 $("pvx").onclick=function(){$("pv").hidden=true};
 $("pvl").onclick=function(){pvStep(-1)};$("pvr").onclick=function(){pvStep(1)};$("pvimg").onclick=function(){pvStep(1)};
@@ -310,7 +325,7 @@ async function deleteAccount(){
  if(prompt("This permanently deletes your profile, photos, matches and messages. Type DELETE to confirm.")!=="DELETE")return;
  toast("Deleting your account…");
  try{var u=await API.user(),ps=[];
-  var lf=await sb.storage.from("photos").list(u.id);(lf.data||[]).forEach(function(f){ps.push(u.id+"/"+f.name)});if(ps.length)await sb.storage.from("photos").remove(ps);
+  var lf=await sb.storage.from("photos").list(u.id);(lf.data||[]).forEach(function(f){ps.push(u.id+"/"+f.name)});if(ps.length)await sb.storage.from("photos").remove(ps);var vf=await sb.storage.from("verify").list(u.id),vps=(vf.data||[]).map(function(f){return u.id+"/"+f.name});if(vps.length)await sb.storage.from("verify").remove(vps);
   var vm=await sb.from("messages").select("audio_path").eq("sender",u.id).not("audio_path","is",null),vp=(vm.data||[]).map(function(x){return x.audio_path});if(vp.length)await sb.storage.from("voice").remove(vp);
   var r=await sb.rpc("delete_my_account");if(r.error)return toast("Could not delete your account: "+r.error.message);
   await sb.auth.signOut({scope:"local"});alert("Your account has been deleted.");location.reload()
@@ -322,8 +337,8 @@ async function doSearch(){var q=$("q").value.trim(),l=$("slist");
  if(q.length<2){l.innerHTML='<div class="empty"><p>Type at least 2 letters to search by name.</p></div>';return}
  var r=await sb.rpc("search_users",{p_q:q});
  if(r.error){l.innerHTML='<div class="empty"><p>Search is not ready yet. Run migration4.sql in Supabase.</p></div>';return}
- S.found=r.data||[];
- l.innerHTML=S.found.length?S.found.map(function(p,k){return '<div class="row" data-k="'+k+'"><span class="av" style="'+bg(p)+'">'+(pl(p).length?"":esc(p.name[0]))+'</span><span style="flex:1"><b>'+esc(p.name)+'</b>, '+age(p.birthdate)+'<small>'+esc(p.intent)+(p.distance_km!=null?" · "+p.distance_km+" km":"")+'</small></span>'+(p.my_swipe?'<span class="meta">'+(p.my_swipe==="nope"?"Passed":"Liked ♥")+'</span>':'<button class="btn" data-like="'+k+'" style="margin:0;padding:8px 14px">Like</button>')+'</div>'}).join(""):'<div class="empty"><p>No one found with that name.</p></div>'}
+ S.found=r.data||[];await loadExtras(S.found.map(function(p){return p.id}));
+ l.innerHTML=S.found.length?S.found.map(function(p,k){return '<div class="row" data-k="'+k+'"><span class="av" style="'+bg(p)+'">'+(pl(p).length?"":esc(p.name[0]))+'</span><span style="flex:1"><b>'+esc(p.name)+'</b>'+vb(p.id)+', '+age(p.birthdate)+'<small>'+esc(p.intent)+(p.distance_km!=null?" · "+p.distance_km+" km":"")+'</small></span>'+(p.my_swipe?'<span class="meta">'+(p.my_swipe==="nope"?"Passed":"Liked ♥")+'</span>':'<button class="btn" data-like="'+k+'" style="margin:0;padding:8px 14px">Like</button>')+'</div>'}).join(""):'<div class="empty"><p>No one found with that name.</p></div>'}
 async function likeFrom(p,btn){btn.disabled=true;var r=await API.swipe(p.id,"like");if(r.error){btn.disabled=false;return toast("Could not send your like. Try again.")}
  btn.replaceWith(Object.assign(document.createElement("span"),{className:"meta",textContent:"Liked ♥"}));
  S.queue=S.queue.filter(function(x){return x.id!==p.id});render();
@@ -339,6 +354,33 @@ function celebrate(){for(var i=0;i<5;i++)setTimeout(function(){burst(innerWidth*
 document.addEventListener("pointerdown",function(e){var t=e.target;if(!t.closest||t.closest("input,select,textarea,audio"))return;
  var b=t.closest("button"),id=b?b.id:"",big=id==="b-like",sup=id==="b-super",no=id==="b-nope";
  burst(e.clientX,e.clientY,sup?["⭐","✨","🌟"]:no?["💔","💨"]:["❤️","💖","💗","💕","💘"],big||sup?14:6,big||sup?90:50)},true);
+
+S.ver={};S.ans={};S.myAns=null;S.ch2=null;S.tt=null;
+var QS=["What’s your ideal lazy Sunday?","Best meal you’ve ever had?","A song you can’t stop replaying?","Cats, dogs, or neither?","Where would you travel tomorrow?","What’s a small thing that makes your day?","Your most useless talent?","Sunrise or sunset person?","What are you learning right now?","Describe your perfect first date in one line.","A movie you can rewatch forever?","What’s your comfort food?","Early bird or night owl?","What’s on your bucket list?","What makes you laugh the hardest?"];
+function today(){return new Date().toISOString().slice(0,10)}
+function dq(){return QS[Math.floor(Date.now()/864e5)%QS.length]}
+function vb(id){return S.ver[id]?' <span class="vbadge" title="Verified">✔</span>':""}
+function daBlock(id){return S.ans[id]?'<div class="prompt"><small>Today’s question: '+esc(dq())+'</small><p>'+esc(S.ans[id])+'</p></div>':""}
+async function loadExtras(ids){if(!ids.length)return;var r=await sb.rpc("profile_extras",{p_ids:ids,p_day:today()});(r.data||[]).forEach(function(x){S.ver[x.id]=x.verified;if(x.answer)S.ans[x.id]=x.answer})}
+async function loadMyAns(){var u=await API.user(),r=await sb.from("daily_answers").select("answer").eq("user_id",u.id).eq("day",today()).maybeSingle();S.myAns=r.data?r.data.answer:null;dqUI()}
+function dqUI(){$("dq").innerHTML="💭 <b>Today:</b> "+esc(dq())+' <span style="color:var(--acc2)">'+(S.myAns?"· Your answer: "+esc(S.myAns.slice(0,40))+(S.myAns.length>40?"…":""):"· Tap to answer")+"</span>"}
+$("dq").onclick=async function(){var a=prompt(dq(),S.myAns||"");if(a===null)return;a=a.trim().slice(0,200);var u=await API.user(),r=a?await sb.from("daily_answers").upsert({user_id:u.id,day:today(),answer:a}):await sb.from("daily_answers").delete().eq("user_id",u.id).eq("day",today());if(r.error)return toast("Could not save your answer");S.myAns=a||null;dqUI();toast(a?"Answer saved":"Answer removed")};
+dqUI();
+function showTyping(){if(!S.cur)return;$("typing").textContent=S.cur.other.name+" is typing…";clearTimeout(S.tt);S.tt=setTimeout(function(){$("typing").textContent=""},3000)}
+var lastTyped=0;
+$("inp").addEventListener("input",function(){if(!S.ch2||Date.now()-lastTyped<2000)return;lastTyped=Date.now();S.ch2.send({type:"broadcast",event:"typing",payload:{}})});
+document.addEventListener("pointerdown",function(e){if(!e.target.closest(".picker"))document.querySelectorAll(".picker").forEach(function(x){x.remove()})});
+$("msgs").onclick=function(e){if(e.target.closest("audio"))return;var b=e.target.closest(".m");if(!b)return;var r=b.getBoundingClientRect(),pk=document.createElement("div");pk.className="picker";
+ pk.innerHTML=["❤️","😂","😮","👍","🔥"].map(function(x){return '<button type="button">'+x+'</button>'}).join("");
+ pk.style.top=Math.max(70,r.top-52)+"px";pk.style.left=Math.max(8,Math.min(innerWidth-230,r.left))+"px";document.body.appendChild(pk);
+ pk.onclick=async function(ev){var em=ev.target.textContent;if(ev.target.tagName!=="BUTTON")return;pk.remove();var mid=+b.dataset.mid,ex=await sb.from("message_reactions").select("emoji").eq("message_id",mid).eq("user_id",S.me.id).maybeSingle();
+  var q=ex.data&&ex.data.emoji===em?await sb.from("message_reactions").delete().eq("message_id",mid).eq("user_id",S.me.id):await sb.from("message_reactions").upsert({message_id:mid,user_id:S.me.id,emoji:em});
+  if(q.error)toast("Could not react");paint()}};
+async function verUI(){var m=$("vmsg");if(S.me.verified){m.textContent="You are verified ✔. People can see the badge on your profile.";$("vlab").hidden=true;return}
+ var r=await sb.from("verification_requests").select("status").eq("user_id",S.me.id).maybeSingle(),st=r.data&&r.data.status;
+ m.textContent=st==="pending"?"Your selfie is being reviewed. This can take a day or two.":st==="rejected"?"Your last selfie was not accepted. Please try again.":"Take a selfie making a peace sign ✌️ next to your face, in good light. We compare it with your photos, then delete it after review.";
+ $("vlab").hidden=st==="pending";
+ $("vsf").onchange=async function(){var f=this.files[0];if(!f)return;toast("Uploading…");var u=await API.user(),b=await shrink(f),path=u.id+"/selfie-"+Date.now()+".jpg",up=await sb.storage.from("verify").upload(path,b,{contentType:"image/jpeg"});if(up.error)return toast("Upload failed: "+up.error.message);var q=await sb.from("verification_requests").upsert({user_id:u.id,photo_path:path,status:"pending"});if(q.error)return toast("Could not submit: "+q.error.message);toast("Submitted for review");verUI()}}
 
 init();
 
